@@ -7,7 +7,8 @@
         "build": "tsc",
         "dev": "tsc -w",
         "lint": "eslint src --ext .ts",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "replay": "node dist/replay.js"
     },
     "dependencies": {
         "@mtga-overlay/shared": "workspace:*",
