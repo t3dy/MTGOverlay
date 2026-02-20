@@ -59,6 +59,7 @@ async function main() {
     await replay(source, target, delay);
 }
 
-if (require.main === module) {
+const isMain = import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+if (isMain) {
     main().catch(console.error);
 }
