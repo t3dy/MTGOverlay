@@ -1,6 +1,6 @@
 import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import path from 'path';
-import { LogTailer, GameStateStore, ScryfallClient, CardCache, GameOrchestrator } from '@mtga-overlay/core';
+import { LogTailer, GameStateStore, ScryfallClient, GameOrchestrator } from '@mtga-overlay/core';
 import { StoreSnapshot } from '@mtga-overlay/shared';
 import os from 'os';
 
