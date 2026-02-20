@@ -54,32 +54,34 @@ app.whenReady().then(() => {
 
     orchestrator.start();
 
-    // Global Shortcuts
+    // Hotkey State Authority
+    let isClickThrough = false;
+
+    // Visibility Toggle: Ctrl+Shift+O
     globalShortcut.register('CommandOrControl+Shift+O', () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-            if (mainWindow.isVisible()) mainWindow.hide();
-            else mainWindow.show();
+            const isVisible = mainWindow.isVisible();
+            if (isVisible) {
+                mainWindow.hide();
+            } else {
+                mainWindow.show();
+            }
+            mainWindow.webContents.send('state:visibility', !isVisible);
         }
     });
 
+    // Click-through Toggle: Ctrl+Shift+C
     globalShortcut.register('CommandOrControl+Shift+C', () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setIgnoreMouseEvents(false);
+            isClickThrough = !isClickThrough;
+            mainWindow.setIgnoreMouseEvents(isClickThrough, { forward: true });
+            mainWindow.webContents.send('state:click-through', isClickThrough);
         }
     });
 
     // IPC Handlers
-    ipcMain.on('toggle-overlay', () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            if (mainWindow.isVisible()) mainWindow.hide();
-            else mainWindow.show();
-        }
-    });
-
-    ipcMain.on('toggle-click-through', () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setIgnoreMouseEvents(false);
-        }
+    ipcMain.on('card:cycle-art', (_event, key) => {
+        orchestrator.cycleCardArt(key);
     });
 });
 
