@@ -1,20 +1,19 @@
 import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import path from 'path';
-import { LogTailer, GameStateStore, ScryfallClient, GameOrchestrator } from '@mtga-overlay/core';
+import { LogTailer, GameStateStore, ScryfallClient, GameOrchestrator, CardCache } from '@mtga-overlay/core';
 import { StoreSnapshot } from '@mtga-overlay/shared';
 import os from 'os';
 
 let mainWindow: BrowserWindow | null = null;
 
-// Initialize Core Services
 const stateStore = new GameStateStore();
 // Assuming default log path for MVP; normally we'd detect or ask user
 const logPath = path.join(os.homedir(), 'AppData', 'LocalLow', 'Wizards Of The Coast', 'MTGA', 'Player.log');
 const tailer = new LogTailer(logPath);
 const scryfall = new ScryfallClient();
-// const cache = new CardCache(app.getPath('userData')); // Cache disabled for now
+const cache = new CardCache(app.getPath('userData'));
 
-const orchestrator = new GameOrchestrator(tailer, stateStore, scryfall);
+const orchestrator = new GameOrchestrator(tailer, stateStore, scryfall, cache);
 
 function createWindow() {
     mainWindow = new BrowserWindow({

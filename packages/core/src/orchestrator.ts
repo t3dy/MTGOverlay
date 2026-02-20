@@ -2,7 +2,7 @@ import { LogTailer } from './log-tailer';
 import { parseLine } from './parser';
 import { GameStateStore } from './state';
 import { ScryfallClient } from './scryfall';
-// import { CardCache } from './cache'; // Assuming this exists or will use a simple map if not
+import { CardCache } from './cache';
 import { ArenaCardIdentity, identityKey, IdentityKey } from '@mtga-overlay/shared';
 
 export class GameOrchestrator {
@@ -16,7 +16,7 @@ export class GameOrchestrator {
         private tailer: LogTailer,
         private store: GameStateStore,
         private scryfall: ScryfallClient,
-        // private cache: CardCache // TODO: Add Cache later
+        private cache: CardCache
     ) { }
 
     public start() {
@@ -120,7 +120,13 @@ export class GameOrchestrator {
     }
 
     private async resolveCard(key: IdentityKey, id: ArenaCardIdentity) {
-        // 1. Check Memory/Disk Cache (TODO)
+        // 1. Check Memory/Disk Cache
+        const cached = this.cache.get(key);
+        if (cached) {
+            this.store.upsertCard(key, cached);
+            this.store.touch();
+            return;
+        }
 
         // 2. Scryfall
         // Priority: mtgaId -> scryfall search?
@@ -134,12 +140,8 @@ export class GameOrchestrator {
         }
 
         if (cardData) {
-            this.store.upsertCard(key, {
-                name: cardData.name,
-                imageUri: cardData.imageUri,
-                scryfallId: cardData.scryfallId,
-                oracleId: cardData.oracleId
-            });
+            this.store.upsertCard(key, cardData);
+            this.cache.set(key, cardData);
             // Trigger an update to show the new card image
             this.store.touch();
         }
