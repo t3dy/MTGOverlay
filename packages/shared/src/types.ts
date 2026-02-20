@@ -28,7 +28,8 @@ export interface CardMetadata {
     name: string;
     scryfallId?: string;
     oracleId?: string;
-    imageUri?: string; // Using imageUri to match existing usage in ScryfallClient, but plan said imagePath
+    imageUri?: string;
+    printUris?: string[];
 }
 
 export interface StoreSnapshot {

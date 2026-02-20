@@ -125,13 +125,15 @@ export class GameOrchestrator {
         if (cached) {
             this.store.upsertCard(key, cached);
             this.store.touch();
+            // Even if cached, we might want to check for printUris if missing, 
+            // but for MVP let's assume if it's cached, it's complete or will stay as is.
+            if (cached.oracleId && !cached.printUris) {
+                this.fetchAndPatchPrints(key, cached.oracleId);
+            }
             return;
         }
 
         // 2. Scryfall
-        // Priority: mtgaId -> scryfall search?
-        // ScryfallClient has getCardByMtgaId.
-
         let cardData = null;
         if (id.mtgaId) {
             cardData = await this.scryfall.getCardByMtgaId(id.mtgaId);
@@ -142,8 +144,56 @@ export class GameOrchestrator {
         if (cardData) {
             this.store.upsertCard(key, cardData);
             this.cache.set(key, cardData);
-            // Trigger an update to show the new card image
             this.store.touch();
+
+            // Background async fetch for prints
+            if (cardData.oracleId) {
+                this.fetchAndPatchPrints(key, cardData.oracleId);
+            }
         }
+    }
+
+    private async fetchAndPatchPrints(key: IdentityKey, oracleId: string) {
+        const prints = await this.scryfall.getPrintsByOracleId(oracleId);
+        if (prints.length > 0) {
+            this.store.patchCard(key, { printUris: prints });
+            // Update cache too so next restart has them
+            const card = this.store.getCard(key);
+            if (card) {
+                this.cache.set(key, card);
+            }
+            // No need to touch() immediately, user will see prints when they open popup
+        }
+    }
+
+    public cycleCardArt(key: IdentityKey) {
+        const card = this.store.getCard(key);
+        if (!card || !card.printUris || card.printUris.length <= 1) return;
+
+        // Current snapshot computing imageUri from overrides.
+        // We need to know current override to pick NEXT.
+        // Let's look at what's in the snapshot effectively.
+        // Actually store.overrides is private. 
+        // Let's add a helper to store or just track it here.
+        // Better: let state be authority.
+
+        // For MVP, just pick next from printUris. 
+        // We need to know which one is current.
+        const snapshot = this.store.getSnapshot();
+        const currentUri = snapshot.cards[key]?.imageUri;
+
+        let nextIndex = 0;
+        const currentIndex = card.printUris.indexOf(currentUri || '');
+        if (currentIndex !== -1) {
+            nextIndex = (currentIndex + 1) % card.printUris.length;
+        } else {
+            // Find base if override not found?
+            const baseIndex = card.printUris.indexOf(card.imageUri || '');
+            nextIndex = (baseIndex + 1) % card.printUris.length;
+        }
+
+        const nextUri = card.printUris[nextIndex];
+        this.store.setArtOverride(key, nextUri);
+        this.store.touch();
     }
 }
