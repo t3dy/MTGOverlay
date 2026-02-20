@@ -1,43 +1,56 @@
 import { EventEmitter } from 'node:events';
-import { GameState, Card } from '@mtga-overlay/shared';
+import { StoreSnapshot, IdentityKey, CardMetadata } from '@mtga-overlay/shared';
 
 export class GameStateStore extends EventEmitter {
-    private state: GameState = {
-        matchId: null,
-        zones: {
+    private zones: {
+        hand: IdentityKey[];
+        battlefield: IdentityKey[];
+    } = {
             hand: [],
-            battlefield: [],
-            graveyard: [],
-            exile: [],
-            library: []
-        }
-    };
+            battlefield: []
+        };
 
-    public getState(): GameState {
-        return this.state;
+    private cards: Record<IdentityKey, CardMetadata> = {};
+    private updateId: number = 0;
+
+    public getSnapshot(): StoreSnapshot {
+        return {
+            zones: {
+                hand: [...this.zones.hand],
+                battlefield: [...this.zones.battlefield]
+            },
+            cards: { ...this.cards },
+            updateId: this.updateId
+        };
     }
 
     public reset() {
-        this.state = {
-            matchId: null,
-            zones: {
-                hand: [],
-                battlefield: [],
-                graveyard: [],
-                exile: [],
-                library: []
-            }
-        };
-        this.emit('update', this.state);
+        this.zones = { hand: [], battlefield: [] };
+        // We might want to keep card cache, but for now reset is hard
+        // this.cards = {}; 
+        // Actually, keeping resolved cards is better for cache hit rate
+        this.updateId++;
+        this.emit('update', this.getSnapshot());
     }
 
-    public updateZone(zoneName: keyof GameState['zones'], cards: Card[]) {
-        this.state.zones[zoneName] = cards;
-        this.emit('update', this.state);
+    public updateZones(newZones: Partial<typeof this.zones>) {
+        if (newZones.hand) this.zones.hand = newZones.hand;
+        if (newZones.battlefield) this.zones.battlefield = newZones.battlefield;
+        this.updateId++;
+        this.emit('update', this.getSnapshot());
     }
 
-    public setMatchId(id: string) {
-        this.state.matchId = id;
-        this.emit('update', this.state);
+    public upsertCard(key: IdentityKey, metadata: CardMetadata) {
+        if (!this.cards[key]) {
+            this.cards[key] = metadata;
+            // We don't necessarily emit on every card resolve, 
+            // the orchestrator will trigger a snapshot update after batch processing.
+        }
+    }
+
+    public touch() {
+        this.updateId++;
+        this.emit('update', this.getSnapshot());
     }
 }
+

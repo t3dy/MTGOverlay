@@ -1,18 +1,20 @@
 import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import path from 'path';
-import { LogTailer, ArenaLogParser, GameStateStore, ScryfallClient, CardCache } from '@mtga-overlay/core';
+import { LogTailer, GameStateStore, ScryfallClient, CardCache, GameOrchestrator } from '@mtga-overlay/core';
+import { StoreSnapshot } from '@mtga-overlay/shared';
 import os from 'os';
 
 let mainWindow: BrowserWindow | null = null;
 
 // Initialize Core Services
 const stateStore = new GameStateStore();
-const parser = new ArenaLogParser();
 // Assuming default log path for MVP; normally we'd detect or ask user
 const logPath = path.join(os.homedir(), 'AppData', 'LocalLow', 'Wizards Of The Coast', 'MTGA', 'Player.log');
 const tailer = new LogTailer(logPath);
-const _scryfall = new ScryfallClient();
-const _cache = new CardCache(app.getPath('userData'));
+const scryfall = new ScryfallClient();
+// const cache = new CardCache(app.getPath('userData')); // Cache disabled for now
+
+const orchestrator = new GameOrchestrator(tailer, stateStore, scryfall);
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -44,22 +46,14 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    // wiring
-    tailer.on('newLine', (line) => parser.parseChunk(line));
-    parser.on('gre-message', (msg) => {
-        // Logic to update stateStore based on msg
-        // For MVP, if we see a simple zone change, we might want to fetch card data
-        console.log('GRE Message', msg);
-    });
-
-    // Dummy update for MVP testing
-    stateStore.on('update', (state) => {
+    // Wiring: Listen to Orchestrator snapshots (which listen to Store updates)
+    orchestrator.onSnapshot((snapshot: StoreSnapshot) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('game-state-update', state);
+            mainWindow.webContents.send('store:snapshot', snapshot);
         }
     });
 
-    tailer.start();
+    orchestrator.start();
 
     // Global Shortcuts
     globalShortcut.register('CommandOrControl+Shift+O', () => {
@@ -98,3 +92,4 @@ app.on('will-quit', () => {
     globalShortcut.unregisterAll();
     tailer.stop();
 });
+

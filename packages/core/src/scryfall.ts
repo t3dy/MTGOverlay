@@ -1,11 +1,11 @@
-import { Card } from '@mtga-overlay/shared';
+import { CardMetadata } from '@mtga-overlay/shared';
 
 const RATE_LIMIT_DELAY = 100; // 100ms between requests
 
 export class ScryfallClient {
     private lastRequestTime: number = 0;
 
-    async getCardByMtgaId(mtgaId: number): Promise<Card | null> {
+    async getCardByMtgaId(mtgaId: number): Promise<CardMetadata | null> {
         await this.throttle();
         try {
             const response = await fetch(`https://api.scryfall.com/cards/arena/${mtgaId}`);
@@ -21,7 +21,7 @@ export class ScryfallClient {
         }
     }
 
-    async searchCard(name: string): Promise<Card | null> {
+    async searchCard(name: string): Promise<CardMetadata | null> {
         await this.throttle();
         try {
             const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
@@ -43,15 +43,13 @@ export class ScryfallClient {
         this.lastRequestTime = Date.now();
     }
 
-    private transform(data: any): Card {
+    private transform(data: any): CardMetadata {
         return {
-            id: data.id,
-            mtgaId: data.arena_id || 0,
             name: data.name,
-            set: data.set,
-            collectorNumber: data.collector_number,
+            scryfallId: data.id,
+            oracleId: data.oracle_id,
             imageUri: data.image_uris?.normal || data.card_faces?.[0]?.image_uris?.normal || '',
-            oracleId: data.oracle_id
         };
     }
 }
+

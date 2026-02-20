@@ -1,30 +1,55 @@
 import { useState, useEffect } from 'react';
 
+// Define the shape coming from IPC, matching StoreSnapshot
+interface StoreSnapshot {
+    zones: {
+        hand: string[];
+        battlefield: string[];
+    };
+    cards: Record<string, { name: string; imageUri?: string }>;
+    updateId: number;
+}
+
 function App() {
-    const [cards, setCards] = useState<any[]>([]);
+    const [snapshot, setSnapshot] = useState<StoreSnapshot | null>(null);
 
     useEffect(() => {
         // Listen for updates from main process
         if (window.electronAPI) {
-            window.electronAPI.onUpdate((event, data) => {
-                console.log('Update received:', data);
-                setCards(data.zones.hand); // Just showing hand for now
+            window.electronAPI.onUpdate((_event: any, data: any) => {
+                // Ensure data matches expected shape or cast it
+                setSnapshot(data as StoreSnapshot);
             });
         }
     }, []);
 
+    const renderZone = (title: string, keys: string[]) => (
+        <div className="zone-container">
+            <h3>{title}</h3>
+            <div className="zone-grid">
+                {keys.map((key) => {
+                    const card = snapshot?.cards[key];
+                    return (
+                        <div key={key} className="card-item">
+                            {card?.imageUri ? (
+                                <img src={card.imageUri} alt={card.name} width="80" />
+                            ) : (
+                                <div className="card-placeholder">{card?.name || 'Unknown'}</div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
+    if (!snapshot) return <div className="app-container"><h1>MTGA Overlay</h1><p>Waiting for game data...</p></div>;
+
     return (
         <div className="app-container">
             <h1>MTGA Overlay</h1>
-            <div className="card-list">
-                {cards.map((card: any) => (
-                    <div key={card.id} className="card-item">
-                        <img src={card.imageUri} alt={card.name} width="100" />
-                        <p>{card.name}</p>
-                    </div>
-                ))}
-                {cards.length === 0 && <p>Waiting for match data...</p>}
-            </div>
+            {renderZone('Hand', snapshot.zones.hand)}
+            {renderZone('Battlefield', snapshot.zones.battlefield)}
         </div>
     );
 }

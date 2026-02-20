@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Card } from '@mtga-overlay/shared';
+import { CardMetadata } from '@mtga-overlay/shared';
 
 export class CardCache {
     private cacheDir: string;
-    private memoryCache: Map<string, Card> = new Map();
+    private memoryCache: Map<string, CardMetadata> = new Map();
 
     constructor(baseDir: string) {
         this.cacheDir = path.join(baseDir, 'cache');
@@ -13,7 +13,7 @@ export class CardCache {
         }
     }
 
-    get(id: string): Card | undefined {
+    get(id: string): CardMetadata | undefined {
         if (this.memoryCache.has(id)) {
             return this.memoryCache.get(id);
         }
@@ -30,9 +30,11 @@ export class CardCache {
         return undefined;
     }
 
-    set(card: Card) {
-        this.memoryCache.set(card.id, card);
-        const filePath = path.join(this.cacheDir, `${card.id}.json`);
+    set(id: string, card: CardMetadata) {
+        this.memoryCache.set(id, card);
+        // Sanitize ID for filename
+        const filename = id.replace(/[^a-z0-9]/gi, '_');
+        const filePath = path.join(this.cacheDir, `${filename}.json`);
         try {
             fs.writeFileSync(filePath, JSON.stringify(card, null, 2));
         } catch (e) {
@@ -40,3 +42,4 @@ export class CardCache {
         }
     }
 }
+
