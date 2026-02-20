@@ -1,0 +1,22 @@
+{
+    "name": "@mtga-overlay/core",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc -w",
+        "lint": "eslint src --ext .ts",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@mtga-overlay/shared": "workspace:*",
+        "lowdb": "^7.0.1",
+        "chokidar": "^3.5.3"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3",
+        "@types/node": "^20.11.5",
+        "@types/better-sqlite3": "^7.6.9"
+    }
+}

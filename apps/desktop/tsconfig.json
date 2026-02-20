@@ -1,0 +1,21 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "dist",
+        "rootDir": ".",
+        "jsx": "react-jsx",
+        "noEmit": false
+    },
+    "include": [
+        "src/**/*",
+        "electron/**/*"
+    ],
+    "references": [
+        {
+            "path": "../../packages/core"
+        },
+        {
+            "path": "../../packages/shared"
+        }
+    ]
+}
