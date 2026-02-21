@@ -27,6 +27,8 @@ function createWindow() {
         frame: false,
         transparent: true,
         alwaysOnTop: true,
+        skipTaskbar: true,
+        focusable: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,

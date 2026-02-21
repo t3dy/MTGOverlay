@@ -4,9 +4,34 @@
     "main": "dist/electron/main.js",
     "scripts": {
         "dev": "vite",
-        "build": "tsc && vite build && electron-builder",
+        "build": "vite build && tsc",
+        "build:ui": "vite build",
+        "build:desktop": "pnpm build",
+        "dist": "pnpm build:desktop && electron-builder --win",
         "lint": "eslint src --ext .ts,.tsx",
         "typecheck": "tsc --noEmit"
+    },
+    "build": {
+        "appId": "com.mtga.overlay",
+        "productName": "MTGAOverlay",
+        "asar": true,
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "dist/**",
+            "electron/**",
+            "package.json"
+        ],
+        "win": {
+            "target": [
+                "portable"
+            ]
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true
+        }
     },
     "dependencies": {
         "@mtga-overlay/core": "workspace:*",
