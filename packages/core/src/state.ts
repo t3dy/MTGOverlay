@@ -96,4 +96,3 @@ export class GameStateStore extends EventEmitter {
         this.emit('update', this.getSnapshot());
     }
 }
-

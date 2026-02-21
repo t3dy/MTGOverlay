@@ -160,6 +160,7 @@ export class GameOrchestrator {
         const nextUri = card.printUris[nextIndex];
         this.store.setArtOverride(key, nextUri);
 
+        // Sprint 3: Global Oracle Persistence
         if (card.oracleId) {
             this.store.setOracleOverride(card.oracleId, nextUri);
             this.cache.setOverride(card.oracleId, nextUri);
@@ -173,6 +174,7 @@ export class GameOrchestrator {
         if (card && card.oracleId) {
             this.store.setOracleOverride(card.oracleId, null);
             this.cache.setOverride(card.oracleId, null);
+            // Also clear instance override so base displays
             this.store.setArtOverride(key, null);
             this.store.touch();
         }

@@ -96,6 +96,10 @@ app.whenReady().then(() => {
     ipcMain.on('card:cycle-art', (_event, { key, direction }) => {
         orchestrator.cycleCardArt(key, direction);
     });
+
+    ipcMain.on('card:reset-art', (_event, key) => {
+        orchestrator.resetOracleOverride(key);
+    });
 });
 
 app.on('window-all-closed', () => {
