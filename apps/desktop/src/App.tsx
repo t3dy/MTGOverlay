@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StoreSnapshot, IdentityKey, CardMetadata } from '@mtga-overlay/shared';
 import { PopupPanel } from './components/PopupPanel';
+import { CardTile } from './components/CardTile';
 
 function App() {
     const [snapshot, setSnapshot] = useState<StoreSnapshot | null>(null);
@@ -72,12 +73,14 @@ function App() {
                         name="Battlefield"
                         keys={snapshot.zones.battlefield}
                         cards={snapshot.cards}
+                        isClickThrough={isClickThrough}
                         onClick={(key, meta) => !isClickThrough && setSelectedCard({ key, metadata: meta })}
                     />
                     <ZoneView
                         name="Hand"
                         keys={snapshot.zones.hand}
                         cards={snapshot.cards}
+                        isClickThrough={isClickThrough}
                         onClick={(key, meta) => !isClickThrough && setSelectedCard({ key, metadata: meta })}
                     />
                 </div>
@@ -97,10 +100,11 @@ function App() {
     );
 }
 
-function ZoneView({ name, keys, cards, onClick }: {
+function ZoneView({ name, keys, cards, isClickThrough, onClick }: {
     name: string;
     keys: IdentityKey[];
     cards: Record<IdentityKey, CardMetadata>;
+    isClickThrough: boolean;
     onClick: (key: IdentityKey, meta: CardMetadata) => void;
 }) {
     return (
@@ -110,43 +114,13 @@ function ZoneView({ name, keys, cards, onClick }: {
                 {keys.map((key) => {
                     const card = cards[key];
                     return (
-                        <div
+                        <CardTile
                             key={key}
-                            onClick={() => onClick(key, card)}
-                            style={{
-                                cursor: 'pointer',
-                                transition: 'transform 0.1s',
-                                width: '80px'
-                            }}
-                        >
-                            {card?.imageUri ? (
-                                <img
-                                    src={card.imageUri}
-                                    alt={card.name}
-                                    style={{
-                                        width: '100%',
-                                        borderRadius: '4px',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                                        border: '1px solid rgba(255,255,255,0.1)'
-                                    }}
-                                />
-                            ) : (
-                                <div style={{
-                                    width: '100%',
-                                    aspectRatio: '0.71',
-                                    backgroundColor: '#333',
-                                    borderRadius: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '10px',
-                                    color: '#888',
-                                    textAlign: 'center'
-                                }}>
-                                    {card?.name || 'Loading...'}
-                                </div>
-                            )}
-                        </div>
+                            cardKey={key}
+                            card={card}
+                            isClickThrough={isClickThrough}
+                            onClick={onClick}
+                        />
                     );
                 })}
             </div>

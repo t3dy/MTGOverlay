@@ -166,30 +166,23 @@ export class GameOrchestrator {
         }
     }
 
-    public cycleCardArt(key: IdentityKey) {
+    public cycleCardArt(key: IdentityKey, direction: 'next' | 'prev' = 'next') {
         const card = this.store.getCard(key);
         if (!card || !card.printUris || card.printUris.length <= 1) return;
 
-        // Current snapshot computing imageUri from overrides.
-        // We need to know current override to pick NEXT.
-        // Let's look at what's in the snapshot effectively.
-        // Actually store.overrides is private. 
-        // Let's add a helper to store or just track it here.
-        // Better: let state be authority.
-
-        // For MVP, just pick next from printUris. 
-        // We need to know which one is current.
         const snapshot = this.store.getSnapshot();
         const currentUri = snapshot.cards[key]?.imageUri;
 
+        let currentIndex = card.printUris.indexOf(currentUri || '');
+        if (currentIndex === -1) {
+            currentIndex = card.printUris.indexOf(card.imageUri || '');
+        }
+
         let nextIndex = 0;
-        const currentIndex = card.printUris.indexOf(currentUri || '');
-        if (currentIndex !== -1) {
+        if (direction === 'next') {
             nextIndex = (currentIndex + 1) % card.printUris.length;
         } else {
-            // Find base if override not found?
-            const baseIndex = card.printUris.indexOf(card.imageUri || '');
-            nextIndex = (baseIndex + 1) % card.printUris.length;
+            nextIndex = (currentIndex - 1 + card.printUris.length) % card.printUris.length;
         }
 
         const nextUri = card.printUris[nextIndex];

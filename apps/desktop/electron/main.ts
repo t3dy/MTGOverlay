@@ -83,8 +83,8 @@ app.whenReady().then(() => {
     });
 
     // IPC Handlers
-    ipcMain.on('card:cycle-art', (_event, key) => {
-        orchestrator.cycleCardArt(key);
+    ipcMain.on('card:cycle-art', (_event, { key, direction }) => {
+        orchestrator.cycleCardArt(key, direction);
     });
 });
 

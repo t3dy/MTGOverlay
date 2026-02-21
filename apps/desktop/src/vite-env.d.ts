@@ -2,7 +2,7 @@
 
 interface ElectronAPI {
     onSnapshot: (callback: (snapshot: any) => void) => void;
-    cycleArt: (key: string) => void;
+    cycleArt: (key: string, direction?: 'next' | 'prev') => void;
     onVisibility: (callback: (visible: boolean) => void) => void;
     onClickThrough: (callback: (enabled: boolean) => void) => void;
 }
