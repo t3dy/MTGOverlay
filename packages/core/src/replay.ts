@@ -1,62 +1,65 @@
-// import { LogTailer } from './log-tailer';
-import { GameStateStore } from './state';
-import { ScryfallClient } from './scryfall';
-import { CardCache } from './cache';
-import { GameOrchestrator } from './orchestrator';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// This script simulates the MTGA log by reading a sample file and feeding it to the orchestrator.
-export async function replay(logFilePath: string, delayMs: number = 100) {
-    console.log(`Starting replay of ${logFilePath}`);
+/**
+ * Replay feeds lines from a source file (fixture) into a target file (live log)
+ * to simulate MTGA log activity for the desktop app.
+ */
+export async function replay(sourcePath: string, targetPath: string, delayMs: number = 500) {
+    console.log(`[Replay] Source: ${sourcePath}`);
+    console.log(`[Replay] Target: ${targetPath}`);
+    console.log(`[Replay] Delay:  ${delayMs}ms`);
 
-    // Mocks/Instances
-    const stateStore = new GameStateStore();
-    const scryfall = new ScryfallClient();
-    const cache = new CardCache(path.join(process.cwd(), '.temp-cache'));
+    if (!fs.existsSync(sourcePath)) {
+        console.error(`Error: Source file not found: ${sourcePath}`);
+        process.exit(1);
+    }
 
-    // We can't easily mock the tailer without an interface, but we can emit events on it.
-    // Let's create a specialized "ReplayTailer" or just mock it.
-    const mockTailer = {
-        on: (event: string, cb: any) => {
-            (mockTailer as any)[`on${event}`] = cb;
-        },
-        start: () => { },
-        stop: () => { },
-        emitLine: (line: string) => {
-            if ((mockTailer as any).onnewLine) (mockTailer as any).onnewLine(line);
-        }
-    } as any;
+    // Ensure target directory exists
+    const targetDir = path.dirname(targetPath);
+    if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+    }
 
-    const orchestrator = new GameOrchestrator(mockTailer, stateStore, scryfall, cache);
+    // Clear target file
+    fs.writeFileSync(targetPath, '');
 
-    orchestrator.onSnapshot((snapshot) => {
-        console.log(`Snapshot Update [ID: ${snapshot.updateId}]:`);
-        console.log(`  Hand: ${snapshot.zones.hand.length} cards`);
-        console.log(`  Battlefield: ${snapshot.zones.battlefield.length} cards`);
-        // For debug: console.log(JSON.stringify(snapshot.zones, null, 2));
-    });
-
-    orchestrator.start();
-
-    const content = fs.readFileSync(logFilePath, 'utf-8');
+    const content = fs.readFileSync(sourcePath, 'utf-8');
     const lines = content.split('\n');
 
     for (const line of lines) {
         if (line.trim()) {
-            mockTailer.emitLine(line);
+            fs.appendFileSync(targetPath, line + '\n');
+            console.log(`[Replay] Appended line: ${line.substring(0, 50)}...`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
         }
     }
 
-    console.log('Replay finished.');
+    console.log('[Replay] Finished.');
 }
 
-if (require.main === module) {
-    const file = process.argv[2];
-    if (!file) {
-        console.error('Usage: ts-node replay.ts <path-to-sample-log>');
+async function main() {
+    // Basic argument parsing
+    const args = process.argv.slice(2);
+    let source = '';
+    let target = '';
+    let delay = 500;
+
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--source' && args[i + 1]) source = args[i + 1];
+        if (args[i] === '--target' && args[i + 1]) target = args[i + 1];
+        if (args[i] === '--delay' && args[i + 1]) delay = parseInt(args[i + 1]);
+    }
+
+    if (!source || !target) {
+        console.error('Usage: node replay.js --source <path> --target <path> [--delay <ms>]');
         process.exit(1);
     }
-    replay(file).catch(console.error);
+
+    await replay(source, target, delay);
+}
+
+const isMain = import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+if (isMain) {
+    main().catch(console.error);
 }

@@ -48,6 +48,24 @@ function App() {
                 <div style={{ fontSize: '9px' }}>Ctrl+Shift+O (Visible) / Ctrl+Shift+C (Click)</div>
             </div>
 
+            {/* Diagnostics Block */}
+            <div style={{
+                position: 'fixed',
+                bottom: 5,
+                left: 5,
+                fontSize: '9px',
+                color: 'rgba(255,255,255,0.3)',
+                pointerEvents: 'none',
+                fontFamily: 'monospace',
+                backgroundColor: 'rgba(0,0,0,0.2)',
+                padding: '2px 5px',
+                borderRadius: '2px'
+            }}>
+                <div>Log: {snapshot?.updateId ? 'CONNECTED' : 'WAITING'}</div>
+                <div>State: [H:{snapshot?.zones.hand.length || 0} B:{snapshot?.zones.battlefield.length || 0} C:{Object.keys(snapshot?.cards || {}).length || 0}]</div>
+                <div>Update ID: {snapshot?.updateId || 0}</div>
+            </div>
+
             {snapshot ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <ZoneView

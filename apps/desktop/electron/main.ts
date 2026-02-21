@@ -7,8 +7,11 @@ import os from 'os';
 let mainWindow: BrowserWindow | null = null;
 
 const stateStore = new GameStateStore();
-// Assuming default log path for MVP; normally we'd detect or ask user
-const logPath = path.join(os.homedir(), 'AppData', 'LocalLow', 'Wizards Of The Coast', 'MTGA', 'Player.log');
+// Log Path Resolution: Env Var -> Standard MTGA Path
+const defaultLogPath = path.join(os.homedir(), 'AppData', 'LocalLow', 'Wizards Of The Coast', 'MTGA', 'Player.log');
+const logPath = process.env.OVERLAY_LOG_PATH || defaultLogPath;
+
+console.log(`[Core] Log Path: ${logPath}`);
 const tailer = new LogTailer(logPath);
 const scryfall = new ScryfallClient();
 const cache = new CardCache(app.getPath('userData'));

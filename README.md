@@ -27,9 +27,34 @@ A lightweight, open-source desktop overlay for Magic: The Gathering Arena.
    ```
    This will start the Electron app and the Vite dev server.
 
-## Usage
+## Testing & Replay
+
+To test without running MTGA, you can use the **Replay Harness**. This simulates log activity by streaming lines from a fixture file to a temporary log monitored by the app.
+
+### Two-Terminal Replay (Windows PowerShell)
+
+**1. Terminal 1: Start Overlay in Replay Mode**
+```powershell
+# Set log path to a temp file and start
+$env:OVERLAY_LOG_PATH="C:\temp\mtga_replay.log"; pnpm dev
+```
+
+**2. Terminal 2: Feed Sample Data**
+```powershell
+# Build core and run the feeder
+pnpm --filter @mtga-overlay/core build
+pnpm --filter @mtga-overlay/core replay --source test/fixtures/sample.log --target C:\temp\mtga_replay.log --delay 1000
+```
+
+### Live Testing (MTGA)
+Simply run `pnpm dev`. It will automatically look for the MTGA `Player.log` in the standard LocalLow path.
+
+## Hotkeys
 - **Ctrl+Shift+O**: Toggle Overlay visibility.
-- **Ctrl+Shift+C**: Toggle Overlay click-through mode (interactive vs passive).
+- **Ctrl+Shift+C**: Toggle Overlay click-through mode.
+
+## Architecture
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Troubleshooting
 - **Logs not found**: The app looks for logs in `%AppData%/LocalLow/Wizards Of The Coast/MTGA/Player.log`. If your logs are elsewhere, you may need to adjust the code (MVP limitation).
