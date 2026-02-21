@@ -12,6 +12,7 @@ export class GameStateStore extends EventEmitter {
 
     private cards: Record<IdentityKey, CardMetadata> = {};
     private overrides: Record<IdentityKey, string> = {};
+    private oracleOverrides: Record<string, string> = {};
     private updateId: number = 0;
 
     public getSnapshot(): StoreSnapshot {
@@ -19,7 +20,7 @@ export class GameStateStore extends EventEmitter {
         for (const [key, card] of Object.entries(this.cards)) {
             snapshotCards[key] = {
                 ...card,
-                imageUri: this.overrides[key] ?? card.imageUri
+                imageUri: this.getEffectiveImageUri(key) || card.imageUri
             };
         }
 
@@ -35,9 +36,8 @@ export class GameStateStore extends EventEmitter {
 
     public reset() {
         this.zones = { hand: [], battlefield: [] };
-        // We keep the overrides map for now, or reset it too? 
-        // Instructions for Sprint 2 say "in-memory only", usually resetting on match start is safest.
         this.overrides = {};
+        // Note: oracleOverrides are persistent and NOT cleared on match reset.
         this.updateId++;
         this.emit('update', this.getSnapshot());
     }
@@ -61,6 +61,15 @@ export class GameStateStore extends EventEmitter {
         }
     }
 
+    public setOracleOverride(oracleId: string, uri: string | null) {
+        if (uri) {
+            this.oracleOverrides[oracleId] = uri;
+        } else {
+            delete this.oracleOverrides[oracleId];
+        }
+        this.updateId++;
+    }
+
     public setArtOverride(key: IdentityKey, uri: string | null) {
         if (uri) {
             this.overrides[key] = uri;
@@ -72,6 +81,14 @@ export class GameStateStore extends EventEmitter {
 
     public getCard(key: IdentityKey): CardMetadata | undefined {
         return this.cards[key];
+    }
+
+    public getEffectiveImageUri(key: IdentityKey): string | undefined {
+        const card = this.cards[key];
+        if (!card) return undefined;
+        return (card.oracleId ? this.oracleOverrides[card.oracleId] : null)
+            ?? this.overrides[key]
+            ?? card.imageUri;
     }
 
     public touch() {

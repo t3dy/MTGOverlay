@@ -48,14 +48,24 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    // Wiring: Listen to Orchestrator snapshots (which listen to Store updates)
+    orchestrator.start();
+
+    // Throttling: 10Hz emission to renderer
+    let latestSnapshot: StoreSnapshot | null = null;
+    let lastSentUpdateId = -1;
+
     orchestrator.onSnapshot((snapshot: StoreSnapshot) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('store:snapshot', snapshot);
-        }
+        latestSnapshot = snapshot;
     });
 
-    orchestrator.start();
+    setInterval(() => {
+        if (mainWindow && !mainWindow.isDestroyed() && latestSnapshot) {
+            if (latestSnapshot.updateId !== lastSentUpdateId) {
+                mainWindow.webContents.send('store:snapshot', latestSnapshot);
+                lastSentUpdateId = latestSnapshot.updateId;
+            }
+        }
+    }, 100);
 
     // Hotkey State Authority
     let isClickThrough = false;
@@ -83,8 +93,8 @@ app.whenReady().then(() => {
     });
 
     // IPC Handlers
-    ipcMain.on('card:cycle-art', (_event, key) => {
-        orchestrator.cycleCardArt(key);
+    ipcMain.on('card:cycle-art', (_event, { key, direction }) => {
+        orchestrator.cycleCardArt(key, direction);
     });
 });
 

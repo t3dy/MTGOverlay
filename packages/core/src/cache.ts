@@ -41,5 +41,32 @@ export class CardCache {
             console.error('Failed to write cache file', e);
         }
     }
+
+    loadOverrides(): Record<string, string> {
+        const filePath = path.join(this.cacheDir, 'overrides.json');
+        if (fs.existsSync(filePath)) {
+            try {
+                return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            } catch (e) {
+                console.error('Failed to read overrides file', e);
+            }
+        }
+        return {};
+    }
+
+    setOverride(oracleId: string, uri: string | null) {
+        const overrides = this.loadOverrides();
+        if (uri) {
+            overrides[oracleId] = uri;
+        } else {
+            delete overrides[oracleId];
+        }
+        const filePath = path.join(this.cacheDir, 'overrides.json');
+        try {
+            fs.writeFileSync(filePath, JSON.stringify(overrides, null, 2));
+        } catch (e) {
+            console.error('Failed to write overrides file', e);
+        }
+    }
 }
 
