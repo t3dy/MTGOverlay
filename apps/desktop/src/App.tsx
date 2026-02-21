@@ -1,28 +1,29 @@
 import { useEffect, useState } from 'react';
 import { StoreSnapshot, IdentityKey, CardMetadata } from '@mtga-overlay/shared';
 import { PopupPanel } from './components/PopupPanel';
+import { CardTile } from './components/CardTile';
 
 function App() {
     const [snapshot, setSnapshot] = useState<StoreSnapshot | null>(null);
     const [isVisible, setIsVisible] = useState(true);
     const [isClickThrough, setIsClickThrough] = useState(false);
-    const [selectedCard, setSelectedCard] = useState<{ key: IdentityKey; metadata: CardMetadata } | null>(null);
+    const [selectedKey, setSelectedKey] = useState<IdentityKey | null>(null);
 
     useEffect(() => {
         if (window.electronAPI) {
-            window.electronAPI.onSnapshot((data: StoreSnapshot) => {
-                setSnapshot(data);
-            });
-            window.electronAPI.onVisibility((visible: boolean) => {
-                setIsVisible(visible);
-            });
-            window.electronAPI.onClickThrough((enabled: boolean) => {
-                setIsClickThrough(enabled);
-            });
+            const unsubs = [
+                window.electronAPI.onSnapshot((data: StoreSnapshot) => setSnapshot(data)),
+                window.electronAPI.onVisibility((visible: boolean) => setIsVisible(visible)),
+                window.electronAPI.onClickThrough((enabled: boolean) => setIsClickThrough(enabled))
+            ];
+            return () => unsubs.forEach(unsub => unsub());
         }
     }, []);
 
     if (!isVisible) return null;
+
+    // Derived State: Always get the freshest metadata from the snapshot
+    const selectedCardMetadata = (selectedKey && snapshot?.cards[selectedKey]) ? snapshot.cards[selectedKey] : null;
 
     return (
         <div style={{
@@ -30,7 +31,7 @@ function App() {
             height: '100vh',
             padding: '10px',
             backgroundColor: 'transparent',
-            display: 'relative'
+            position: 'relative' // Corrected from display: 'relative'
         }}>
             {/* Status Indicators */}
             <div style={{
@@ -61,7 +62,8 @@ function App() {
                 padding: '2px 5px',
                 borderRadius: '2px'
             }}>
-                <div>Log: {snapshot?.updateId ? 'CONNECTED' : 'WAITING'}</div>
+                {/* Corrected: use snapshot existence instead of updateId truthiness (0 is truthy-ish but better to be explicit) */}
+                <div>Log: {snapshot ? 'CONNECTED' : 'WAITING'}</div>
                 <div>State: [H:{snapshot?.zones.hand.length || 0} B:{snapshot?.zones.battlefield.length || 0} C:{Object.keys(snapshot?.cards || {}).length || 0}]</div>
                 <div>Update ID: {snapshot?.updateId || 0}</div>
             </div>
@@ -72,25 +74,27 @@ function App() {
                         name="Battlefield"
                         keys={snapshot.zones.battlefield}
                         cards={snapshot.cards}
-                        onClick={(key, meta) => !isClickThrough && setSelectedCard({ key, metadata: meta })}
+                        isClickThrough={isClickThrough}
+                        onClick={(key) => !isClickThrough && setSelectedKey(key)}
                     />
                     <ZoneView
                         name="Hand"
                         keys={snapshot.zones.hand}
                         cards={snapshot.cards}
-                        onClick={(key, meta) => !isClickThrough && setSelectedCard({ key, metadata: meta })}
+                        isClickThrough={isClickThrough}
+                        onClick={(key) => !isClickThrough && setSelectedKey(key)}
                     />
                 </div>
             ) : (
                 <div style={{ color: 'white', opacity: 0.5, fontFamily: 'sans-serif' }}>Waiting for MTGA game data...</div>
             )}
 
-            {selectedCard && (
+            {selectedKey && selectedCardMetadata && (
                 <PopupPanel
-                    cardKey={selectedCard.key}
-                    metadata={selectedCard.metadata}
-                    onClose={() => setSelectedCard(null)}
-                    onCycleArt={(key) => window.electronAPI.cycleArt(key)}
+                    cardKey={selectedKey}
+                    metadata={selectedCardMetadata}
+                    onClose={() => setSelectedKey(null)}
+                    onCycleArt={(key, direction) => window.electronAPI.cycleArt(key, direction)}
                     onResetArt={(key) => window.electronAPI.resetArt(key)}
                 />
             )}
@@ -98,11 +102,12 @@ function App() {
     );
 }
 
-function ZoneView({ name, keys, cards, onClick }: {
+function ZoneView({ name, keys, cards, isClickThrough, onClick }: {
     name: string;
     keys: IdentityKey[];
     cards: Record<IdentityKey, CardMetadata>;
-    onClick: (key: IdentityKey, meta: CardMetadata) => void;
+    isClickThrough: boolean;
+    onClick: (key: IdentityKey) => void;
 }) {
     return (
         <div style={{ fontFamily: 'sans-serif' }}>
@@ -110,44 +115,16 @@ function ZoneView({ name, keys, cards, onClick }: {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {keys.map((key) => {
                     const card = cards[key];
+                    // Guard against undefined card metadata
+                    if (!card) return null;
                     return (
-                        <div
+                        <CardTile
                             key={key}
-                            onClick={() => onClick(key, card)}
-                            style={{
-                                cursor: 'pointer',
-                                transition: 'transform 0.1s',
-                                width: '80px'
-                            }}
-                        >
-                            {card?.imageUri ? (
-                                <img
-                                    src={card.imageUri}
-                                    alt={card.name}
-                                    style={{
-                                        width: '100%',
-                                        borderRadius: '4px',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                                        border: '1px solid rgba(255,255,255,0.1)'
-                                    }}
-                                />
-                            ) : (
-                                <div style={{
-                                    width: '100%',
-                                    aspectRatio: '0.71',
-                                    backgroundColor: '#333',
-                                    borderRadius: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '10px',
-                                    color: '#888',
-                                    textAlign: 'center'
-                                }}>
-                                    {card?.name || 'Loading...'}
-                                </div>
-                            )}
-                        </div>
+                            cardKey={key}
+                            card={card}
+                            isClickThrough={isClickThrough}
+                            onClick={() => onClick(key)}
+                        />
                     );
                 })}
             </div>

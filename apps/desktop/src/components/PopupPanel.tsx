@@ -5,7 +5,7 @@ interface PopupPanelProps {
     cardKey: string;
     metadata: CardMetadata;
     onClose: () => void;
-    onCycleArt: (key: string) => void;
+    onCycleArt: (key: string, direction?: 'next' | 'prev') => void;
     onResetArt: (key: string) => void;
 }
 
