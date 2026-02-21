@@ -3,13 +3,15 @@ import { parseLine } from './parser';
 import { GameStateStore } from './state';
 import { ScryfallClient } from './scryfall';
 import { CardCache } from './cache';
-import { ArenaCardIdentity, identityKey, IdentityKey } from '@mtga-overlay/shared';
+import { ArenaCardIdentity, identityKey, IdentityKey, DraftCardStats } from '@mtga-overlay/shared';
+import { SeventeenLandsService } from './seventeenlands';
 
 export class GameOrchestrator {
     // Deduplication & Race Protection
     private inFlightIdentities = new Set<IdentityKey>();
     private resolvedIdentities = new Set<IdentityKey>();
     private printsInFlightByOracleId = new Set<string>();
+    private seventeenLands = new SeventeenLandsService();
 
     constructor(
         private tailer: LogTailer,
@@ -20,8 +22,17 @@ export class GameOrchestrator {
 
     public start() {
         this.loadPersistentOverrides();
+        this.load17Lands();
         this.tailer.on('newLine', (line: string) => this.processLine(line));
         this.tailer.start(); // Start tailing if not already
+    }
+
+    private load17Lands() {
+        const csvPath = process.env.OVERLAY_17LANDS_CSV;
+        if (csvPath) {
+            console.log(`[17Lands] Loading data from ${csvPath}`);
+            this.seventeenLands.loadCsv(csvPath);
+        }
     }
 
     private loadPersistentOverrides() {
@@ -105,6 +116,10 @@ export class GameOrchestrator {
                 this.store.upsertCard(key, cardData);
                 this.cache.set(key, cardData);
                 this.resolvedIdentities.add(key);
+
+                // Join 17Lands stats
+                this.joinDraftStats(key, cardData);
+
                 this.store.touch();
 
                 if (cardData.oracleId) {
@@ -116,6 +131,35 @@ export class GameOrchestrator {
             // DO NOT add to resolvedIdentities, allowing future retry
         } finally {
             this.inFlightIdentities.delete(key);
+        }
+    }
+
+    private joinDraftStats(key: IdentityKey, card: any) {
+        let stats: DraftCardStats | undefined = card.oracleId ? this.seventeenLands.lookupByOracleId(card.oracleId) : undefined;
+        if (!stats && card.name) {
+            const lookup = this.seventeenLands.lookupByName(card.name);
+            if (lookup) {
+                if ('ambiguous' in lookup) {
+                    // Attach placeholder for ambiguity
+                    this.store.patchCard(key, {
+                        draftStats: {
+                            source: '17lands',
+                            name: card.name,
+                            ambiguous: true,
+                            metrics: {} as any
+                        }
+                    });
+                } else {
+                    stats = lookup;
+                    if (card.oracleId) {
+                        this.seventeenLands.attachOracleId(stats, card.oracleId);
+                    }
+                }
+            }
+        }
+
+        if (stats) {
+            this.store.patchCard(key, { draftStats: stats });
         }
     }
 

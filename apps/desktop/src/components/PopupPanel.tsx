@@ -81,6 +81,36 @@ export const PopupPanel: React.FC<PopupPanelProps> = ({ cardKey, metadata, onClo
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
                     Oracle ID: {metadata.oracleId || 'Unknown'}
                 </div>
+
+                {metadata.draftStats && (
+                    <div style={{
+                        marginTop: '15px',
+                        padding: '10px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        borderRadius: '4px',
+                        textAlign: 'left',
+                        fontSize: '13px'
+                    }}>
+                        <div style={{ fontWeight: 'bold', borderBottom: '1px solid #444', marginBottom: '8px', paddingBottom: '4px', color: '#0078d4' }}>
+                            17Lands Draft Stats
+                        </div>
+                        {metadata.draftStats.ambiguous ? (
+                            <div style={{ color: '#ffcc00', fontStyle: 'italic' }}>
+                                Ambiguous match in 17Lands data (duplicate name).
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div><span style={{ color: '#888' }}>ALSA:</span> {metadata.draftStats.metrics.alsa.toFixed(2)}</div>
+                                <div><span style={{ color: '#888' }}>GIH WR:</span> <span style={{ color: '#4caf50' }}>{(metadata.draftStats.metrics.gihWr * 100).toFixed(1)}%</span></div>
+                                <div><span style={{ color: '#888' }}>GP WR:</span> {(metadata.draftStats.metrics.gpWr * 100).toFixed(1)}%</div>
+                                <div><span style={{ color: '#888' }}>ATA:</span> {metadata.draftStats.metrics.ata.toFixed(2)}</div>
+                                <div><span style={{ color: '#888' }}>Seen:</span> {metadata.draftStats.metrics.seen}</div>
+                                <div><span style={{ color: '#888' }}>Picked:</span> {metadata.draftStats.metrics.picked}</div>
+                                <div><span style={{ color: '#888' }}>IIH:</span> {metadata.draftStats.metrics.iihPp.toFixed(1)}pp</div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

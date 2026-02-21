@@ -23,6 +23,36 @@ export type ArenaEvent =
     | { type: 'MatchStarted'; payload: { raw?: any } }
     | { type: 'Unknown'; payload: { line: string } };
 
+// 17Lands Draft Stats
+export interface DraftCardStats {
+    source: '17lands';
+    format?: string;
+    cohort?: string;
+    metrics: {
+        seen: number;
+        picked: number;
+        gp: number;
+        gpPct: number;      // 0..1
+        gpWr: number;       // 0..1
+        alsa: number;
+        ata: number;
+        oh: number;
+        ohWr: number;
+        gd: number;
+        gdWr: number;
+        gih: number;
+        gihWr: number;
+        gns: number;
+        gnsWr: number;
+        iihPp: number;      // numeric (e.g., 1.1)
+    };
+    color?: string;
+    rarity?: string;
+    name: string;
+    oracleId?: string;
+    ambiguous?: boolean; // Flag for duplicate names
+}
+
 // Store
 export interface CardMetadata {
     name: string;
@@ -30,6 +60,7 @@ export interface CardMetadata {
     oracleId?: string;
     imageUri?: string;
     printUris?: string[];
+    draftStats?: DraftCardStats;
 }
 
 export interface StoreSnapshot {
