@@ -20,8 +20,16 @@ export class GameOrchestrator {
     ) { }
 
     public start() {
+        this.loadPersistentOverrides();
         this.tailer.on('newLine', (line: string) => this.processLine(line));
         this.tailer.start(); // Start tailing if not already
+    }
+
+    private loadPersistentOverrides() {
+        const overrides = this.cache.loadOverrides();
+        for (const [oracleId, uri] of Object.entries(overrides)) {
+            this.store.setOracleOverride(oracleId, uri);
+        }
     }
 
     public onSnapshot(cb: (snapshot: any) => void) {
@@ -194,6 +202,24 @@ export class GameOrchestrator {
 
         const nextUri = card.printUris[nextIndex];
         this.store.setArtOverride(key, nextUri);
+
+        // Sprint 3: Global Oracle Persistence
+        if (card.oracleId) {
+            this.store.setOracleOverride(card.oracleId, nextUri);
+            this.cache.setOverride(card.oracleId, nextUri);
+        }
+
         this.store.touch();
+    }
+
+    public resetOracleOverride(key: IdentityKey) {
+        const card = this.store.getCard(key);
+        if (card && card.oracleId) {
+            this.store.setOracleOverride(card.oracleId, null);
+            this.cache.setOverride(card.oracleId, null);
+            // Also clear instance override so base displays
+            this.store.setArtOverride(key, null);
+            this.store.touch();
+        }
     }
 }

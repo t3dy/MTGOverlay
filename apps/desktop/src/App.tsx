@@ -91,6 +91,7 @@ function App() {
                     metadata={selectedCard.metadata}
                     onClose={() => setSelectedCard(null)}
                     onCycleArt={(key) => window.electronAPI.cycleArt(key)}
+                    onResetArt={(key) => window.electronAPI.resetArt(key)}
                 />
             )}
         </div>

@@ -6,9 +6,10 @@ interface PopupPanelProps {
     metadata: CardMetadata;
     onClose: () => void;
     onCycleArt: (key: string) => void;
+    onResetArt: (key: string) => void;
 }
 
-export const PopupPanel: React.FC<PopupPanelProps> = ({ cardKey, metadata, onClose, onCycleArt }) => {
+export const PopupPanel: React.FC<PopupPanelProps> = ({ cardKey, metadata, onClose, onCycleArt, onResetArt }) => {
     return (
         <div style={{
             position: 'fixed',
@@ -62,6 +63,20 @@ export const PopupPanel: React.FC<PopupPanelProps> = ({ cardKey, metadata, onClo
                     }}
                 >
                     Cycle Art (Prints)
+                </button>
+                <button
+                    onClick={() => onResetArt(cardKey)}
+                    style={{
+                        padding: '8px',
+                        backgroundColor: 'transparent',
+                        border: '1px solid #666',
+                        borderRadius: '4px',
+                        color: '#aaa',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                    }}
+                >
+                    Reset Art
                 </button>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
                     Oracle ID: {metadata.oracleId || 'Unknown'}

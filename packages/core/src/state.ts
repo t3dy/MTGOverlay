@@ -12,14 +12,20 @@ export class GameStateStore extends EventEmitter {
 
     private cards: Record<IdentityKey, CardMetadata> = {};
     private overrides: Record<IdentityKey, string> = {};
+    private oracleOverrides: Record<string, string> = {};
     private updateId: number = 0;
 
     public getSnapshot(): StoreSnapshot {
         const snapshotCards: Record<IdentityKey, CardMetadata> = {};
         for (const [key, card] of Object.entries(this.cards)) {
+            // Instruction: oracleOverrides[oracleId] ?? instanceOverride ?? baseImageUri
+            const effectiveUri = (card.oracleId ? this.oracleOverrides[card.oracleId] : null)
+                ?? this.overrides[key]
+                ?? card.imageUri;
+
             snapshotCards[key] = {
                 ...card,
-                imageUri: this.overrides[key] ?? card.imageUri
+                imageUri: effectiveUri
             };
         }
 
@@ -35,11 +41,19 @@ export class GameStateStore extends EventEmitter {
 
     public reset() {
         this.zones = { hand: [], battlefield: [] };
-        // We keep the overrides map for now, or reset it too? 
-        // Instructions for Sprint 2 say "in-memory only", usually resetting on match start is safest.
         this.overrides = {};
+        // Note: oracleOverrides are NOT cleared on match reset as they are persistent "Skin" choices.
         this.updateId++;
         this.emit('update', this.getSnapshot());
+    }
+
+    public setOracleOverride(oracleId: string, uri: string | null) {
+        if (uri) {
+            this.oracleOverrides[oracleId] = uri;
+        } else {
+            delete this.oracleOverrides[oracleId];
+        }
+        this.updateId++;
     }
 
     public updateZones(newZones: Partial<typeof this.zones>) {

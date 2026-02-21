@@ -5,9 +5,11 @@ import { CardMetadata } from '@mtga-overlay/shared';
 export class CardCache {
     private cacheDir: string;
     private memoryCache: Map<string, CardMetadata> = new Map();
+    private overridesPath: string;
 
     constructor(baseDir: string) {
         this.cacheDir = path.join(baseDir, 'cache');
+        this.overridesPath = path.join(this.cacheDir, 'overrides.json');
         if (!fs.existsSync(this.cacheDir)) {
             fs.mkdirSync(this.cacheDir, { recursive: true });
         }
@@ -39,6 +41,45 @@ export class CardCache {
             fs.writeFileSync(filePath, JSON.stringify(card, null, 2));
         } catch (e) {
             console.error('Failed to write cache file', e);
+        }
+    }
+
+    public getOverride(oracleId: string): string | undefined {
+        const overrides = this.loadOverrides();
+        return overrides[oracleId];
+    }
+
+    public setOverride(oracleId: string, uri: string | null) {
+        const overrides = this.loadOverrides();
+        if (uri) {
+            overrides[oracleId] = uri;
+        } else {
+            delete overrides[oracleId];
+        }
+        this.saveOverrides(overrides);
+    }
+
+    public loadOverrides(): Record<string, string> {
+        if (fs.existsSync(this.overridesPath)) {
+            try {
+                return JSON.parse(fs.readFileSync(this.overridesPath, 'utf-8'));
+            } catch (e) {
+                console.error('Failed to read overrides file', e);
+            }
+        }
+        return {};
+    }
+
+    private saveOverrides(overrides: Record<string, string>) {
+        const tempPath = `${this.overridesPath}.tmp`;
+        try {
+            fs.writeFileSync(tempPath, JSON.stringify(overrides, null, 2));
+            fs.renameSync(tempPath, this.overridesPath);
+        } catch (e) {
+            console.error('Failed to save overrides file', e);
+            if (fs.existsSync(tempPath)) {
+                try { fs.unlinkSync(tempPath); } catch { /* ignore */ }
+            }
         }
     }
 }
